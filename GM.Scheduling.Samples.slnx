@@ -1,0 +1,20 @@
+<Solution>
+  <Folder Name="/Solution Items/Meta/">
+    <File Path="README.md" />
+    <File Path="LICENSE" />
+  </Folder>
+  <Folder Name="/Solution Items/Build/">
+    <File Path=".editorconfig" />
+    <File Path=".gitattributes" />
+    <File Path=".gitignore" />
+  </Folder>
+  <Folder Name="/Solution Items/CI/">
+    <File Path=".github/workflows/ci.yml" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="GM.Scheduling.Sample.API/GM.Scheduling.Sample.API.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GM.Scheduling.Sample.Tests/GM.Scheduling.Sample.Tests.csproj" />
+  </Folder>
+</Solution>
