@@ -11,12 +11,10 @@ namespace GM.Scheduling.Sample.Tests;
 // Boots the real sample (Quartz + GM.DistributedLock + EF-Sqlite history) and drives the billing/dunning flow.
 public sealed class BillingSampleTests : IClassFixture<BillingSampleTests.Factory>, IDisposable
 {
-    private readonly Factory _factory;
     private readonly HttpClient _client;
 
     public BillingSampleTests(Factory factory)
     {
-        _factory = factory;
         _client = factory.CreateClient();
     }
 
@@ -27,7 +25,7 @@ public sealed class BillingSampleTests : IClassFixture<BillingSampleTests.Factor
         var deadline = DateTime.UtcNow + timeout;
         while (DateTime.UtcNow < deadline)
         {
-            var history = await client.GetFromJsonAsync<JsonElement>($"/jobs/{job}/history");
+            var history = await client.GetFromJsonAsync<JsonElement>($"/api/v1/jobs/{job}/history");
             if (history.GetArrayLength() > 0)
                 return history[0];
             await Task.Delay(100);
@@ -39,7 +37,7 @@ public sealed class BillingSampleTests : IClassFixture<BillingSampleTests.Factor
     public async Task BillingRun_PartiallyFails_ThenDunningRecovers()
     {
         // Billing: 5 due, 2 decline → PartiallyFailed with 3 processed / 2 failed.
-        await _client.PostAsync("/jobs/billing-cycle/trigger", null);
+        await _client.PostAsync("/api/v1/jobs/billing-cycle/trigger", null);
         var billing = await WaitForLastRunAsync(_client, "billing-cycle", TimeSpan.FromSeconds(15));
 
         Assert.Equal("PartiallyFailed", billing.GetProperty("status").GetString());
@@ -47,7 +45,7 @@ public sealed class BillingSampleTests : IClassFixture<BillingSampleTests.Factor
         Assert.Equal(2, billing.GetProperty("failedCount").GetInt32());
 
         // Dunning: retries the 2 declined subscriptions, which succeed on their second attempt.
-        await _client.PostAsync("/jobs/dunning-retry/trigger", null);
+        await _client.PostAsync("/api/v1/jobs/dunning-retry/trigger", null);
         var dunning = await WaitForLastRunAsync(_client, "dunning-retry", TimeSpan.FromSeconds(15));
 
         Assert.Equal("Succeeded", dunning.GetProperty("status").GetString());
@@ -57,14 +55,14 @@ public sealed class BillingSampleTests : IClassFixture<BillingSampleTests.Factor
     [Fact]
     public async Task FlakyJob_Retries_ThenSucceeds()
     {
-        await _client.PostAsync("/jobs/flaky-report/trigger", null);
+        await _client.PostAsync("/api/v1/jobs/flaky-report/trigger", null);
 
         // Wait until both the failed attempt and the successful retry are recorded.
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(15);
         JsonElement history = default;
         while (DateTime.UtcNow < deadline)
         {
-            history = await _client.GetFromJsonAsync<JsonElement>("/jobs/flaky-report/history");
+            history = await _client.GetFromJsonAsync<JsonElement>("/api/v1/jobs/flaky-report/history");
             if (history.GetArrayLength() >= 2) break;
             await Task.Delay(100);
         }

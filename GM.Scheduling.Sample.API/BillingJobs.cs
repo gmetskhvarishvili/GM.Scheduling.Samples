@@ -32,12 +32,12 @@ public sealed class SubscriptionStore
         }
     }
 
-    public IReadOnlyCollection<Subscription> All => _subs.Values.OrderBy(s => s.Id).ToList();
+    public IReadOnlyCollection<Subscription> GetAll() => _subs.Values.OrderBy(s => s.Id).ToList();
     public IEnumerable<Subscription> DueForBilling() => _subs.Values.Where(s => s.Status == "active");
     public IEnumerable<Subscription> InDunning() => _subs.Values.Where(s => s.Status == "dunning");
 
     /// <summary>Charges a subscription. Throws for a subscription that "declines" on this attempt.</summary>
-    public void Charge(Subscription sub)
+    public static void Charge(Subscription sub)
     {
         sub.ChargeAttempts++;
         if (sub.DeclinesOnce && sub.ChargeAttempts == 1)
@@ -46,7 +46,7 @@ public sealed class SubscriptionStore
         sub.LastBilledAtUtc = DateTimeOffset.UtcNow;
     }
 
-    public void MoveToDunning(Subscription sub) => sub.Status = "dunning";
+    public static void MoveToDunning(Subscription sub) => sub.Status = "dunning";
 }
 
 /// <summary>
@@ -69,14 +69,14 @@ public sealed class BillingCycleJob : IScheduledJob
         {
             try
             {
-                _store.Charge(sub);
+                SubscriptionStore.Charge(sub);
                 processed++;
             }
             catch (Exception ex)
             {
-                _store.MoveToDunning(sub);
+                SubscriptionStore.MoveToDunning(sub);
                 failures.Add($"{sub.Id}: {ex.Message}");
-                _logger.LogWarning("Billing declined for {Sub}; moved to dunning.", sub.Id);
+                _logger.LogWarning(ex, "Billing declined for {Sub}; moved to dunning.", sub.Id);
             }
         }
 
@@ -103,7 +103,7 @@ public sealed class DunningRetryJob : IScheduledJob
         {
             try
             {
-                _store.Charge(sub);
+                SubscriptionStore.Charge(sub);
                 recovered++;
             }
             catch (Exception ex)

@@ -9,8 +9,8 @@
     <ItemGroup>
         <PackageReference Include="GM.Scheduling" Version="1.0.0" />
         <PackageReference Include="GM.Scheduling.EntityFramework" Version="1.0.0" />
-        <PackageReference Include="GM.DistributedLock" Version="1.0.0" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.10" />
+        <PackageReference Include="GM.DistributedLock" Version="1.0.2" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.11" />
     </ItemGroup>
 
 </Project>

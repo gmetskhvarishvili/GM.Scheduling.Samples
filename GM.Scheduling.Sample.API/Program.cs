@@ -2,6 +2,7 @@ using GM.DistributedLock;
 using GM.Scheduling;
 using GM.Scheduling.EntityFramework;
 using GM.Scheduling.Sample.API;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -34,7 +35,14 @@ builder.Services.AddGMScheduling(s =>
     s.UseEntityFrameworkHistory(o => o.UseSqlite(historyConnection));
 });
 
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
+
+// Liveness must not depend on downstream dependencies, so it runs no checks; readiness runs
+// every registered health check (none here yet). See engineering baseline §11.
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/health/ready");
 
 // Create the history table (gm_job_executions).
 using (var scope = app.Services.CreateScope())
@@ -45,6 +53,14 @@ using (var scope = app.Services.CreateScope())
 }
 
 string[] jobNames = ["billing-cycle", "dunning-retry", "flaky-report"];
+
+string[] tryIt =
+[
+    "POST /api/v1/jobs/billing-cycle/trigger    then  GET /api/v1/jobs/billing-cycle/history",
+    "POST /api/v1/jobs/dunning-retry/trigger    (recovers the declined subscriptions)",
+    "POST /api/v1/jobs/flaky-report/trigger     (fails once, retries, succeeds)",
+    "GET  /api/v1/subscriptions",
+];
 
 app.MapGet("/", async (IJobScheduler scheduler) =>
 {
@@ -57,41 +73,40 @@ app.MapGet("/", async (IJobScheduler scheduler) =>
     return Results.Ok(new
     {
         message = "GM.Scheduling sample — billing cycle + dunning",
-        try_it = new[]
-        {
-            "POST /jobs/billing-cycle/trigger    then  GET /jobs/billing-cycle/history",
-            "POST /jobs/dunning-retry/trigger    (recovers the declined subscriptions)",
-            "POST /jobs/flaky-report/trigger     (fails once, retries, succeeds)",
-            "GET  /subscriptions",
-        },
+        try_it = tryIt,
         jobs,
     });
 });
 
-app.MapPost("/jobs/{name}/trigger", async (string name, IJobScheduler scheduler) =>
+app.MapPost("/api/v1/jobs/{name}/trigger", async (string name, IJobScheduler scheduler) =>
 {
     await scheduler.TriggerNowAsync(name);
-    return Results.Accepted($"/jobs/{name}/history");
+    return Results.Accepted($"/api/v1/jobs/{name}/history");
 });
 
-app.MapPost("/jobs/{name}/pause", async (string name, IJobScheduler scheduler) =>
+app.MapPost("/api/v1/jobs/{name}/pause", async (string name, IJobScheduler scheduler) =>
 {
     await scheduler.PauseAsync(name);
     return Results.Ok(new { name, state = "paused" });
 });
 
-app.MapPost("/jobs/{name}/resume", async (string name, IJobScheduler scheduler) =>
+app.MapPost("/api/v1/jobs/{name}/resume", async (string name, IJobScheduler scheduler) =>
 {
     await scheduler.ResumeAsync(name);
     return Results.Ok(new { name, state = "resumed" });
 });
 
-app.MapGet("/jobs/{name}/history", async (string name, IJobScheduler scheduler) =>
+app.MapGet("/api/v1/jobs/{name}/history", async (string name, IJobScheduler scheduler) =>
     Results.Ok(await scheduler.GetHistoryAsync(name, 20)));
 
-app.MapGet("/subscriptions", (SubscriptionStore store) => Results.Ok(store.All));
+app.MapGet("/api/v1/subscriptions", (SubscriptionStore store) => Results.Ok(store.GetAll()));
 
-app.Run();
+await app.RunAsync();
 
 // Exposed so the test project can spin the app up with WebApplicationFactory.
-public partial class Program;
+public partial class Program
+{
+    protected Program()
+    {
+    }
+}

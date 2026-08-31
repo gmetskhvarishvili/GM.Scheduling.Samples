@@ -1,0 +1,27 @@
+<Project>
+
+  <!--
+    Shared build settings for the GM.Scheduling sample solution. The samples are executable
+    documentation, so they are held to the same engineering baseline as the packages they
+    demonstrate: latest analyzers + code style, with warnings treated as errors.
+  -->
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!--
+      CA1848 (source-generated LoggerMessage delegates) is a high-throughput micro-optimization.
+      The sample logging behaviour favours a plain structured-template call for readability;
+      the delegate ceremony would obscure the teaching point, so it is relaxed sample-wide.
+    -->
+    <NoWarn>$(NoWarn);CA1848</NoWarn>
+  </PropertyGroup>
+
+</Project>

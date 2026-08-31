@@ -5,9 +5,6 @@ A runnable [GM.Scheduling](https://github.com/gmetskhvarishvili/GM.Scheduling) d
 without failing the batch, and a dunning job retries them — with execution history persisted via
 `GM.Scheduling.EntityFramework` (SQLite).
 
-> References the sibling source repo by **project path**. Swap the `ProjectReference`s in
-> `GM.Scheduling.Sample.API.csproj` for `PackageReference`s once published.
-
 ## Run
 
 ```bash
@@ -26,22 +23,22 @@ Jobs (registered in [`Program.cs`](GM.Scheduling.Sample.API/Program.cs)):
 
 ```bash
 # Run billing now — one declined card doesn't fail the batch
-curl -s -X POST http://localhost:5000/jobs/billing-cycle/trigger
-curl -s http://localhost:5000/jobs/billing-cycle/history | jq '.[0]'
+curl -s -X POST http://localhost:5000/api/v1/jobs/billing-cycle/trigger
+curl -s http://localhost:5000/api/v1/jobs/billing-cycle/history | jq '.[0]'
 # → { "status": "PartiallyFailed", "processedCount": 3, "failedCount": 2, "summary": "Billed 3, 2 to dunning." }
 
 # Recover the declines
-curl -s -X POST http://localhost:5000/jobs/dunning-retry/trigger
-curl -s http://localhost:5000/jobs/dunning-retry/history | jq '.[0]'
+curl -s -X POST http://localhost:5000/api/v1/jobs/dunning-retry/trigger
+curl -s http://localhost:5000/api/v1/jobs/dunning-retry/history | jq '.[0]'
 # → { "status": "Succeeded", "processedCount": 2, ... }
 
 # Retry demo
-curl -s -X POST http://localhost:5000/jobs/flaky-report/trigger
-curl -s http://localhost:5000/jobs/flaky-report/history | jq '.[].status'
+curl -s -X POST http://localhost:5000/api/v1/jobs/flaky-report/trigger
+curl -s http://localhost:5000/api/v1/jobs/flaky-report/history | jq '.[].status'
 # → "Succeeded"  (attempt 1)   "Failed"  (attempt 0)
 
-curl -s http://localhost:5000/subscriptions
-curl -s -X POST http://localhost:5000/jobs/billing-cycle/pause
+curl -s http://localhost:5000/api/v1/subscriptions
+curl -s -X POST http://localhost:5000/api/v1/jobs/billing-cycle/pause
 ```
 
 `GET /` lists every job with its last-run status.
