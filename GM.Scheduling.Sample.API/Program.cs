@@ -32,7 +32,7 @@ builder.Services.AddGMScheduling(s =>
     s.AddJob<FlakyReportJob>("flaky-report", retryPolicy: RetryPolicy.Fixed(2, TimeSpan.FromSeconds(2)));
 
     // Persist execution history so last-run status survives restarts (GM.Scheduling.EntityFramework).
-    s.UseEntityFrameworkHistory(o => o.UseSqlite(historyConnection));
+    s.UseEntityFrameworkHistory(o => o.UseSqlite(historyConnection).UseSnakeCaseNamingConvention());
 });
 
 builder.Services.AddHealthChecks();

@@ -11,6 +11,7 @@
         <PackageReference Include="GM.Scheduling.EntityFramework" Version="1.0.0" />
         <PackageReference Include="GM.DistributedLock" Version="1.0.2" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.11" />
+        <PackageReference Include="EFCore.NamingConventions" Version="10.0.1" />
     </ItemGroup>
 
 </Project>
